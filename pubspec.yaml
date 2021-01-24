@@ -10,15 +10,17 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
   cupertino_icons: ^1.0.2
+  hive: ^1.4.4+1
+  hive_flutter: ^0.3.1
+  google_fonts: ^1.1.1
 
 dev_dependencies:
-  flutter_test:
-    sdk: flutter
   integration_test:
     sdk: flutter
   flutter_launcher_icons: "^0.8.0"
+  hive_generator: ^0.8.2
+  build_runner: ^1.11.0
 
 flutter_icons:
   android: "ic_launcher"

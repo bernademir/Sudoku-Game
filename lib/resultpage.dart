@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'language.dart';
 
@@ -13,7 +14,9 @@ class _ResultPage extends State<ResultPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(lang['resultpage']),
+        title: Text(lang['resultpage'],
+            style: GoogleFonts.playfairDisplaySc(
+                textStyle: TextStyle(fontSize: 20))),
       ),
       body: Center(),
     );
