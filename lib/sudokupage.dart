@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:sudoku/sudoku.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:wakelock/wakelock.dart';
 
 import 'language.dart';
 
@@ -29,7 +32,7 @@ class _SudokuPage extends State<SudokuPage> {
       List.generate(9, (i) => List.generate(9, (j) => j + 1));
   final Box _sudokuBox = Hive.box('sudoku');
   String _sudokuString;
-  //Timer _sayac;
+  Timer _sayac;
   List _sudoku = [];
   List _sudokuHistory = [];
   bool _note = false;
@@ -63,22 +66,64 @@ class _SudokuPage extends State<SudokuPage> {
 
     _sudokuBox.put('sudokuRows', _sudoku);
     _sudokuBox.put('xy', "99");
-    _sudokuBox.put('ipucu', 3);
+    _sudokuBox.put('ipucu', 39);
     _sudokuBox.put('sure', 0);
-
-    Map historyItem = {'sudokuRows': _sudoku, 'xy': "99", 'ipucu': 3};
-
-    _sudokuHistory.add(historyItem);
-    _sudokuBox.put('sudokuHistory', _sudokuHistory);
 
     print(_sudokuString);
     print(gorulecekSayisi);
   }
 
+  void _adimKaydet() {
+    String sonDurum = _sudokuBox.get('sudokuRows').toString();
+    if (sonDurum.contains("0")) {
+      Map historyItem = {
+        'sudokuRows': _sudokuBox.get('sudokuRows'),
+        'xy': _sudokuBox.get('xy'),
+        'ipucu': _sudokuBox.get('ipucu')
+      };
+
+      _sudokuHistory.add(jsonEncode(historyItem));
+      _sudokuBox.put('sudokuHistory', _sudokuHistory);
+    } else {
+      _sudokuString = _sudokuBox.get('sudokuString');
+      String kontrol = sonDurum.replaceAll(RegExp(r'[e, \][]'), '');
+      String mesaj = "Yanlış çözüm lütfen çözümünüzü gözden geçiriniz";
+      if (kontrol == _sudokuString) {
+        mesaj = "Tebrikler sudokuyu başarıyla çözdünüz";
+        Box completedBox = Hive.box('completed');
+        Map completedSudoku = {
+          'tarih': DateTime.now(),
+          'cozulmus': _sudokuBox.get('sudokuRows'),
+          'sure': _sudokuBox.get('sure'),
+          'sudokuHistory': _sudokuBox.get('sudokuHistory'),
+        };
+        completedBox.add(completedSudoku);
+        _sudokuBox.put('sudokuRows', null);
+        Navigator.pop(context);
+      }
+      Fluttertoast.showToast(
+          msg: mesaj, toastLength: Toast.LENGTH_LONG, timeInSecForIosWeb: 3);
+    }
+  }
+
   @override
   void initState() {
-    _sudokuOlustur();
     super.initState();
+    Wakelock.enable();
+    if (_sudokuBox.get('sudokuRows') == null)
+      _sudokuOlustur();
+    else
+      _sudoku = _sudokuBox.get('sudokuRows');
+    _sayac = Timer.periodic(Duration(seconds: 1), (timer) {
+      int sure = _sudokuBox.get('sure');
+      _sudokuBox.put('sure', ++sure);
+    });
+  }
+
+  @override
+  void dispose() {
+    if (_sayac != null && _sayac.isActive) _sayac.cancel();
+    super.dispose();
   }
 
   @override
@@ -89,15 +134,30 @@ class _SudokuPage extends State<SudokuPage> {
             style: GoogleFonts.playfairDisplaySc(
                 textStyle: TextStyle(fontSize: 20))),
         actions: <Widget>[
-          IconButton(icon: Icon(Icons.refresh), onPressed: _sudokuOlustur)
+          IconButton(icon: Icon(Icons.refresh), onPressed: _sudokuOlustur),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: ValueListenableBuilder<Box>(
+                  valueListenable: _sudokuBox.listenable(keys: ['sure']),
+                  builder: (context, box, _) {
+                    String sure = Duration(seconds: box.get('sure')).toString();
+                    return Text(
+                      sure.split('.').first,
+                      style: GoogleFonts.playfairDisplaySc(
+                          textStyle: TextStyle(fontSize: 20)),
+                    );
+                  }),
+            ),
+          )
         ],
       ),
       body: Center(
         child: Column(
           children: <Widget>[
-            Text(
-              _sudokuBox.get('level', defaultValue: lang['level2']),
-            ),
+            // Text(
+            //   _sudokuBox.get('level', defaultValue: lang['level2']),
+            // ),
             AspectRatio(
               aspectRatio: 1,
               child: ValueListenableBuilder<Box>(
@@ -178,7 +238,7 @@ class _SudokuPage extends State<SudokuPage> {
                                                                                           child: Center(
                                                                                             child: Text(
                                                                                               "${sudokuRows[x][y]}".split('')[i + j] == "0" ? "" : "${sudokuRows[x][y]}".split('')[i + j],
-                                                                                              style: TextStyle(fontSize: 10),
+                                                                                              style: TextStyle(fontSize: 10, color: Colors.white),
                                                                                             ),
                                                                                           ),
                                                                                         ),
@@ -192,8 +252,9 @@ class _SudokuPage extends State<SudokuPage> {
                                                                           sudokuRows[x][y] != "0"
                                                                               ? sudokuRows[x][y]
                                                                               : "",
-                                                                          style:
-                                                                              TextStyle(fontSize: 18),
+                                                                          style: TextStyle(
+                                                                              fontSize: 18,
+                                                                              color: Colors.white),
                                                                         ),
                                                                 ),
                                                               ),
@@ -245,6 +306,7 @@ class _SudokuPage extends State<SudokuPage> {
                                             yC = int.parse(xy.substring(1));
                                         _sudoku[xC][yC] = "0";
                                         _sudokuBox.put('sudokuRows', _sudoku);
+                                        _adimKaydet();
                                       }
                                     },
                                     child: Column(
@@ -307,6 +369,7 @@ class _SudokuPage extends State<SudokuPage> {
                                                 box.put('sudokuRows', _sudoku);
                                                 box.put('ipucu',
                                                     box.get('ipucu') - 1);
+                                                _adimKaydet();
                                               }
                                             }
                                           },
@@ -402,8 +465,7 @@ class _SudokuPage extends State<SudokuPage> {
 
                                         _sudokuBox.put(
                                             'sudokuHistory', _sudokuHistory);
-                                        _sudoku = onceki[
-                                            'sudokuRows']; // Sayılar geri alındıktan sonra farklı bir sayı girildiğinde silinen sayıların geri dönmemesi için
+                                        _sudoku = onceki['sudokuRows'];
                                       }
 
                                       print(_sudokuHistory.length);
@@ -486,6 +548,7 @@ class _SudokuPage extends State<SudokuPage> {
                                             }
                                             _sudokuBox.put(
                                                 'sudokuRows', _sudoku);
+                                            _adimKaydet();
                                             print("${i + j}");
                                           }
                                         },

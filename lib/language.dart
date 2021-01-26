@@ -1,7 +1,7 @@
 Map lang = {
-  "firstpage": "Giriş Sayfası",
-  "sudokupage": "Sudoku Sayfası",
-  "resultpage": "Sonuç Sayfası",
+  "firstpage": "Çözdüğünüz Sudokular",
+  "sudokupage": "Sudoku",
+  "resultpage": "Sonuç",
   "notcompleted":
       "Henüz herhangi bir sudoku çözmediniz. Sağ üst köşeden seviye seçimi yaparak yeni bir sudoku çözmeye başlayabilirsiniz.",
   "selectlevel": "Seviye Seçin",
