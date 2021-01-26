@@ -110,9 +110,10 @@ class _FirstPage extends State<FirstPage> {
                               textStyle: TextStyle(fontSize: 22),
                             ),
                           ),
-                          subtitle: Text("${Duration(seconds: eleman['sure'])}"
-                              .split('.')
-                              .first),
+                          subtitle: Text(
+                              "${Duration(seconds: eleman['sure']).toString()}"
+                                  .split('.')
+                                  .first),
                         ),
                     ],
                   );
