@@ -104,7 +104,6 @@ class _FirstPage extends State<FirstPage> {
                         ),
                       for (Map eleman in box.values.toList().take(30))
                         ListTile(
-                          onTap: () {},
                           title: Text(
                             "${eleman['tarih']}",
                             style: GoogleFonts.playfairDisplaySc(
