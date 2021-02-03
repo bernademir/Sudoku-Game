@@ -16,6 +16,8 @@ dependencies:
   google_fonts: ^1.1.1
   wakelock: ^0.2.1+1
   fluttertoast: ^7.1.6
+  date_format: ^1.0.9
+  intl: ^0.16.1
 
 dev_dependencies:
   integration_test:

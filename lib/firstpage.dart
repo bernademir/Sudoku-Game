@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:sudoku/sudokupage.dart';
 import 'language.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -86,38 +85,17 @@ class _FirstPage extends State<FirstPage> {
                 ),
               ],
             ),
-            body: ValueListenableBuilder<Box>(
-                valueListenable: snapshot.data.listenable(),
-                builder: (context, box, _) {
-                  return Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      if (box.length == 0)
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            lang['notcompleted'],
-                            style: GoogleFonts.playfairDisplaySc(
-                              textStyle: TextStyle(fontSize: 22),
-                            ),
-                          ),
-                        ),
-                      for (Map eleman in box.values.toList().take(30))
-                        ListTile(
-                          title: Text(
-                            "${eleman['tarih']}",
-                            style: GoogleFonts.playfairDisplaySc(
-                              textStyle: TextStyle(fontSize: 22),
-                            ),
-                          ),
-                          subtitle: Text(
-                              "${Duration(seconds: eleman['sure']).toString()}"
-                                  .split('.')
-                                  .first),
-                        ),
-                    ],
-                  );
-                }),
+            body: Container(
+              padding: EdgeInsets.all(5.0),
+              child: Center(
+                child: Text(
+                  'Sudoku sorularında belirlenmiş miktarda rakam sudoku içine yerleştirilmiş olarak verilir. Daha sonra belirlenmiş 3 temel kurala uygun olacak şekilde rakamları yerleştirmemiz istenir.\n\n* Her satırda tüm rakamlar bulunmalı ve bu rakamlar sadece birer defa yer almalıdır.\n\n* Her sütunda tüm rakamlar bulunmalı ve bu rakamlar sadece birer defa yer almalıdır.\n\n* Her 9 bölgede tüm rakamlar bulunmalı ve bu rakamlar sadece birer defa yer almalıdır.',
+                  style: GoogleFonts.playfairDisplaySc(
+                    textStyle: TextStyle(fontSize: 20),
+                  ),
+                ),
+              ),
+            ),
           );
         return Center(
           child: CircularProgressIndicator(),
