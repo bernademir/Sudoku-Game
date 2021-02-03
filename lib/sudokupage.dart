@@ -67,7 +67,7 @@ class _SudokuPage extends State<SudokuPage> {
 
     _sudokuBox.put('sudokuRows', _sudoku);
     _sudokuBox.put('xy', "99");
-    _sudokuBox.put('ipucu', 39);
+    _sudokuBox.put('ipucu', 3);
     _sudokuBox.put('sure', 0);
 
     print(_sudokuString);
