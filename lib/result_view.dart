@@ -3,14 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import 'language.dart';
+import 'string.dart';
 
-class ResultPage extends StatefulWidget {
+class ResultView extends StatefulWidget {
   @override
-  _ResultPageState createState() => _ResultPageState();
+  _ResultViewState createState() => _ResultViewState();
 }
 
-class _ResultPageState extends State<ResultPage> {
+class _ResultViewState extends State<ResultView> {
   Box _sudokubox;
   Future<Box> _openbox() async {
     _sudokubox = await Hive.openBox('sudoku');
@@ -24,14 +24,7 @@ class _ResultPageState extends State<ResultPage> {
       builder: (context, snapshot) {
         if (snapshot.hasData)
           return Scaffold(
-            appBar: AppBar(
-              title: Text(
-                lang['resultpage'],
-                style: GoogleFonts.playfairDisplaySc(
-                  textStyle: TextStyle(fontSize: 20),
-                ),
-              ),
-            ),
+            appBar: _appBarWidget(),
             body: ValueListenableBuilder<Box>(
                 valueListenable: snapshot.data.listenable(),
                 builder: (context, box, _) {
@@ -69,6 +62,17 @@ class _ResultPageState extends State<ResultPage> {
           child: CircularProgressIndicator(),
         );
       },
+    );
+  }
+
+  AppBar _appBarWidget() {
+    return AppBar(
+      title: Text(
+        lang['resultView'],
+        style: GoogleFonts.playfairDisplaySc(
+          textStyle: TextStyle(fontSize: 20),
+        ),
+      ),
     );
   }
 }

@@ -7,14 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
-import 'package:sudoku/resultpage.dart';
+import 'package:sudoku/result_view.dart';
 import 'package:sudoku/sudoku.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:wakelock/wakelock.dart';
 import 'package:intl/intl.dart';
-import 'language.dart';
+import '../string.dart';
 
-final Map<String, int> sudokulevels = {
+final Map<String, int> sudokuLevels = {
   lang['level1']: 62,
   lang['level2']: 53,
   lang['level3']: 44,
@@ -23,142 +23,45 @@ final Map<String, int> sudokulevels = {
   lang['level6']: 17,
 };
 
-class SudokuPage extends StatefulWidget {
+class SudokuView extends StatefulWidget {
   @override
-  _SudokuPage createState() => _SudokuPage();
+  _SudokuView createState() => _SudokuView();
 }
 
-class _SudokuPage extends State<SudokuPage> {
-  final List ornekSudoku =
+class _SudokuView extends State<SudokuView> {
+  final List exampleSudoku =
       List.generate(9, (i) => List.generate(9, (j) => j + 1));
   final Box _sudokuBox = Hive.box('sudoku');
   String _sudokuString;
-  Timer _sayac;
+  Timer _counter;
   List _sudoku = [];
   List _sudokuHistory = [];
   bool _note = false;
-
-  void _sudokuOlustur() {
-    int gorulecekSayisi =
-        sudokulevels[_sudokuBox.get('level', defaultValue: lang['level2'])];
-
-    _sudokuString = sudoku[Random().nextInt(sudoku.length)];
-    _sudokuBox.put('sudokuString', _sudokuString);
-
-    _sudoku = List.generate(
-      9,
-      (i) => List.generate(
-        9,
-        (j) => "e" + _sudokuString.substring(i * 9, (i + 1) * 9).split('')[j],
-      ),
-    );
-
-    int i = 0;
-    while (i < 81 - gorulecekSayisi) {
-      int x = Random().nextInt(9);
-      int y = Random().nextInt(9);
-
-      if (_sudoku[x][y] != "0") {
-        print(_sudoku[x][y]);
-        _sudoku[x][y] = "0";
-        i++;
-      }
-    }
-
-    _sudokuBox.put('sudokuRows', _sudoku);
-    _sudokuBox.put('xy', "99");
-    _sudokuBox.put('ipucu', 3);
-    _sudokuBox.put('sure', 0);
-
-    print(_sudokuString);
-    print(gorulecekSayisi);
-  }
-
-  void _adimKaydet() {
-    String sonDurum = _sudokuBox.get('sudokuRows').toString();
-    if (sonDurum.contains("0")) {
-      Map historyItem = {
-        'sudokuRows': _sudokuBox.get('sudokuRows'),
-        'xy': _sudokuBox.get('xy'),
-        'ipucu': _sudokuBox.get('ipucu')
-      };
-
-      _sudokuHistory.add(jsonEncode(historyItem));
-      _sudokuBox.put('sudokuHistory', _sudokuHistory);
-    } else {
-      _sudokuString = _sudokuBox.get('sudokuString');
-      String kontrol = sonDurum.replaceAll(RegExp(r'[e, \][]'), '');
-      String mesaj = "Yanlış çözüm lütfen çözümünüzü gözden geçiriniz";
-      if (kontrol == _sudokuString) {
-        mesaj = "Tebrikler sudokuyu başarıyla çözdünüz";
-        Box completedBox = Hive.box('completed');
-        DateTime now = DateTime.now();
-        Map completedSudoku = {
-          'tarih': DateFormat('yyyy-MM-dd – kk:mm').format(now),
-          'cozulmus': _sudokuBox.get('sudokuRows'),
-          'sure': _sudokuBox.get('sure'),
-          'sudokuHistory': _sudokuBox.get('sudokuHistory'),
-        };
-        completedBox.add(completedSudoku);
-        _sudokuBox.put('sudokuRows', null);
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ResultPage(),
-          ),
-        );
-      }
-      Fluttertoast.showToast(
-          msg: mesaj, toastLength: Toast.LENGTH_LONG, timeInSecForIosWeb: 3);
-    }
-  }
 
   @override
   void initState() {
     super.initState();
     Wakelock.enable();
     if (_sudokuBox.get('sudokuRows') == null)
-      _sudokuOlustur();
+      sudokuOlustur();
     else
       _sudoku = _sudokuBox.get('sudokuRows');
-    _sayac = Timer.periodic(Duration(seconds: 1), (timer) {
-      int sure = _sudokuBox.get('sure');
-      _sudokuBox.put('sure', ++sure);
+    _counter = Timer.periodic(Duration(seconds: 1), (timer) {
+      int time = _sudokuBox.get('time');
+      _sudokuBox.put('time', ++time);
     });
   }
 
   @override
   void dispose() {
-    if (_sayac != null && _sayac.isActive) _sayac.cancel();
+    if (_counter != null && _counter.isActive) _counter.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(lang['sudokupage'],
-            style: GoogleFonts.playfairDisplaySc(
-                textStyle: TextStyle(fontSize: 20))),
-        actions: <Widget>[
-          IconButton(icon: Icon(Icons.refresh), onPressed: _sudokuOlustur),
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: ValueListenableBuilder<Box>(
-                  valueListenable: _sudokuBox.listenable(keys: ['sure']),
-                  builder: (context, box, _) {
-                    String sure = Duration(seconds: box.get('sure')).toString();
-                    return Text(
-                      sure.split('.').first,
-                      style: GoogleFonts.playfairDisplaySc(
-                          textStyle: TextStyle(fontSize: 20)),
-                    );
-                  }),
-            ),
-          )
-        ],
-      ),
+      appBar: _appBarWidget(),
       body: Center(
         child: Column(
           children: <Widget>[
@@ -299,119 +202,11 @@ class _SudokuPage extends State<SudokuPage> {
                             children: <Widget>[
                               //silme
                               Expanded(
-                                child: Card(
-                                  color: Colors.blue[900],
-                                  margin: EdgeInsets.all(8.0),
-                                  child: InkWell(
-                                    onTap: () {
-                                      String xy = _sudokuBox.get('xy',
-                                          defaultValue: "99");
-                                      if (xy != "99") {
-                                        int xC = int.parse(xy.substring(0, 1)),
-                                            yC = int.parse(xy.substring(1));
-                                        _sudoku[xC][yC] = "0";
-                                        _sudokuBox.put('sudokuRows', _sudoku);
-                                        _adimKaydet();
-                                      }
-                                    },
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: <Widget>[
-                                        Icon(
-                                          Icons.delete,
-                                          color: Colors.white,
-                                        ),
-                                        Text(
-                                          "Sil",
-                                          style: GoogleFonts.playfairDisplaySc(
-                                            textStyle: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 20),
-                                          ),
-                                        )
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                child: deleteWidget(),
                               ),
                               //ipucu
                               Expanded(
-                                child: ValueListenableBuilder<Box>(
-                                    valueListenable:
-                                        _sudokuBox.listenable(keys: ['ipucu']),
-                                    builder: (context, box, widget) {
-                                      return Card(
-                                        color: Colors.blue[900],
-                                        margin: EdgeInsets.all(8.0),
-                                        child: InkWell(
-                                          onTap: () {
-                                            String xy = _sudokuBox.get('xy',
-                                                defaultValue: "99");
-                                            if (xy != "99" &&
-                                                box.get('ipucu') > 0) {
-                                              int xC = int.parse(
-                                                      xy.substring(0, 1)),
-                                                  yC = int.parse(
-                                                      xy.substring(1));
-                                              String cozumString =
-                                                  box.get('sudokuString');
-                                              List cozumSudoku = List.generate(
-                                                9,
-                                                (i) => List.generate(
-                                                  9,
-                                                  (j) => cozumString
-                                                      .substring(
-                                                          i * 9, (i + 1) * 9)
-                                                      .split('')[j],
-                                                ),
-                                              );
-
-                                              if (_sudoku[xC][yC] !=
-                                                  cozumSudoku[xC][yC]) {
-                                                _sudoku[xC][yC] =
-                                                    cozumSudoku[xC][yC];
-                                                box.put('sudokuRows', _sudoku);
-                                                box.put('ipucu',
-                                                    box.get('ipucu') - 1);
-                                                _adimKaydet();
-                                              }
-                                            }
-                                          },
-                                          child: Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: <Widget>[
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: <Widget>[
-                                                  Icon(
-                                                    Icons.lightbulb,
-                                                    color: Colors.white,
-                                                  ),
-                                                  Text(
-                                                    " : ${box.get('ipucu')}",
-                                                    style: TextStyle(
-                                                      fontSize: 22,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              Text(
-                                                "Ipucu",
-                                                style: GoogleFonts
-                                                    .playfairDisplaySc(
-                                                  textStyle: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 20),
-                                                ),
-                                              )
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    }),
+                                child: hintWidget(),
                               ),
                             ],
                           ),
@@ -421,59 +216,7 @@ class _SudokuPage extends State<SudokuPage> {
                             children: <Widget>[
                               //geri alma
                               Expanded(
-                                child: Card(
-                                  color: _note
-                                      ? Colors.blue.withOpacity(0.6)
-                                      : Colors.blue[900],
-                                  margin: EdgeInsets.all(8.0),
-                                  child: InkWell(
-                                    onTap: () {
-                                      if (_sudokuHistory.length > 1) {
-                                        _sudokuHistory.removeLast();
-                                        Map onceki =
-                                            jsonDecode(_sudokuHistory.last);
-                                        _sudokuBox.put(
-                                            'sudokuRows', onceki['sudokuRows']);
-                                        _sudokuBox.put('xy', onceki['xy']);
-                                        _sudokuBox.put(
-                                            'ipucu', onceki['ipucu']);
-
-                                        _sudokuBox.put(
-                                            'sudokuHistory', _sudokuHistory);
-                                        _sudoku = onceki['sudokuRows'];
-                                      }
-
-                                      print(_sudokuHistory.length);
-                                    },
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: <Widget>[
-                                        Icon(
-                                          Icons.undo,
-                                          color: Colors.white,
-                                        ),
-                                        Text(
-                                          "Geri Al",
-                                          style: GoogleFonts.playfairDisplaySc(
-                                            textStyle: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 20),
-                                          ),
-                                        ),
-                                        ValueListenableBuilder<Box>(
-                                          valueListenable: _sudokuBox
-                                              .listenable(
-                                                  keys: ['sudokuHistory']),
-                                          builder: (context, box, _) {
-                                            return Text(
-                                                "${box.get('sudokuHistory', defaultValue: []).length}");
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                                child: backWidget(),
                               ),
                             ],
                           ),
@@ -523,7 +266,7 @@ class _SudokuPage extends State<SudokuPage> {
                                             }
                                             _sudokuBox.put(
                                                 'sudokuRows', _sudoku);
-                                            _adimKaydet();
+                                            adimKaydet();
                                             print("${i + j}");
                                           }
                                         },
@@ -553,5 +296,248 @@ class _SudokuPage extends State<SudokuPage> {
         ),
       ),
     );
+  }
+
+  Widget _appBarWidget() {
+    return AppBar(
+      title: Text(lang['SudokuViewTitle'],
+          style: GoogleFonts.playfairDisplaySc(
+              textStyle: TextStyle(fontSize: 20))),
+      actions: <Widget>[
+        IconButton(icon: Icon(Icons.refresh), onPressed: sudokuOlustur),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: ValueListenableBuilder<Box>(
+                valueListenable: _sudokuBox.listenable(keys: ['time']),
+                builder: (context, box, _) {
+                  String time = Duration(seconds: box.get('time')).toString();
+                  return Text(
+                    time.split('.').first,
+                    style: GoogleFonts.playfairDisplaySc(
+                        textStyle: TextStyle(fontSize: 20)),
+                  );
+                }),
+          ),
+        )
+      ],
+    );
+  }
+
+  Widget deleteWidget() {
+    return Card(
+      color: Colors.blue[900],
+      margin: EdgeInsets.all(8.0),
+      child: InkWell(
+        onTap: () {
+          String xy = _sudokuBox.get('xy', defaultValue: "99");
+          if (xy != "99") {
+            int xC = int.parse(xy.substring(0, 1)),
+                yC = int.parse(xy.substring(1));
+            _sudoku[xC][yC] = "0";
+            _sudokuBox.put('sudokuRows', _sudoku);
+            adimKaydet();
+          }
+        },
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(
+              Icons.delete,
+              color: Colors.white,
+            ),
+            Text(
+              "Sil",
+              style: GoogleFonts.playfairDisplaySc(
+                textStyle: TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget hintWidget() {
+    return ValueListenableBuilder<Box>(
+      valueListenable: _sudokuBox.listenable(keys: ['ipucu']),
+      builder: (context, box, widget) {
+        return Card(
+          color: Colors.blue[900],
+          margin: EdgeInsets.all(8.0),
+          child: InkWell(
+            onTap: () {
+              String xy = _sudokuBox.get('xy', defaultValue: "99");
+              if (xy != "99" && box.get('ipucu') > 0) {
+                int xC = int.parse(xy.substring(0, 1)),
+                    yC = int.parse(xy.substring(1));
+                String cozumString = box.get('sudokuString');
+                List cozumSudoku = List.generate(
+                  9,
+                  (i) => List.generate(
+                    9,
+                    (j) =>
+                        cozumString.substring(i * 9, (i + 1) * 9).split('')[j],
+                  ),
+                );
+
+                if (_sudoku[xC][yC] != cozumSudoku[xC][yC]) {
+                  _sudoku[xC][yC] = cozumSudoku[xC][yC];
+                  box.put('sudokuRows', _sudoku);
+                  box.put('ipucu', box.get('ipucu') - 1);
+                  adimKaydet();
+                }
+              }
+            },
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Icon(
+                      Icons.lightbulb,
+                      color: Colors.white,
+                    ),
+                    Text(
+                      " : ${box.get('ipucu')}",
+                      style: TextStyle(
+                        fontSize: 22,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  "Ipucu",
+                  style: GoogleFonts.playfairDisplaySc(
+                    textStyle: TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget backWidget() {
+    return Card(
+      color: _note ? Colors.blue.withOpacity(0.6) : Colors.blue[900],
+      margin: EdgeInsets.all(8.0),
+      child: InkWell(
+        onTap: () {
+          if (_sudokuHistory.length > 1) {
+            _sudokuHistory.removeLast();
+            Map onceki = jsonDecode(_sudokuHistory.last);
+            _sudokuBox.put('sudokuRows', onceki['sudokuRows']);
+            _sudokuBox.put('xy', onceki['xy']);
+            _sudokuBox.put('ipucu', onceki['ipucu']);
+
+            _sudokuBox.put('sudokuHistory', _sudokuHistory);
+            _sudoku = onceki['sudokuRows'];
+          }
+
+          print(_sudokuHistory.length);
+        },
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Icon(
+              Icons.undo,
+              color: Colors.white,
+            ),
+            Text(
+              "Geri Al",
+              style: GoogleFonts.playfairDisplaySc(
+                textStyle: TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            ),
+            ValueListenableBuilder<Box>(
+              valueListenable: _sudokuBox.listenable(keys: ['sudokuHistory']),
+              builder: (context, box, _) {
+                return Text(
+                    "${box.get('sudokuHistory', defaultValue: []).length}");
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void sudokuOlustur() {
+    int gorulecekSayisi =
+        sudokuLevels[_sudokuBox.get('level', defaultValue: lang['level2'])];
+
+    _sudokuString = sudoku[Random().nextInt(sudoku.length)];
+    _sudokuBox.put('sudokuString', _sudokuString);
+
+    _sudoku = List.generate(
+      9,
+      (i) => List.generate(
+        9,
+        (j) => "e" + _sudokuString.substring(i * 9, (i + 1) * 9).split('')[j],
+      ),
+    );
+
+    int i = 0;
+    while (i < 81 - gorulecekSayisi) {
+      int x = Random().nextInt(9);
+      int y = Random().nextInt(9);
+
+      if (_sudoku[x][y] != "0") {
+        print(_sudoku[x][y]);
+        _sudoku[x][y] = "0";
+        i++;
+      }
+    }
+
+    _sudokuBox.put('sudokuRows', _sudoku);
+    _sudokuBox.put('xy', "99");
+    _sudokuBox.put('ipucu', 3);
+    _sudokuBox.put('time', 0);
+
+    print(_sudokuString);
+    print(gorulecekSayisi);
+  }
+
+  void adimKaydet() {
+    String sonDurum = _sudokuBox.get('sudokuRows').toString();
+    if (sonDurum.contains("0")) {
+      Map historyItem = {
+        'sudokuRows': _sudokuBox.get('sudokuRows'),
+        'xy': _sudokuBox.get('xy'),
+        'ipucu': _sudokuBox.get('ipucu')
+      };
+
+      _sudokuHistory.add(jsonEncode(historyItem));
+      _sudokuBox.put('sudokuHistory', _sudokuHistory);
+    } else {
+      _sudokuString = _sudokuBox.get('sudokuString');
+      String kontrol = sonDurum.replaceAll(RegExp(r'[e, \][]'), '');
+      String mesaj = "Yanlış çözüm lütfen çözümünüzü gözden geçiriniz";
+      if (kontrol == _sudokuString) {
+        mesaj = "Tebrikler sudokuyu başarıyla çözdünüz";
+        Box completedBox = Hive.box('completed');
+        DateTime now = DateTime.now();
+        Map completedSudoku = {
+          'tarih': DateFormat('yyyy-MM-dd – kk:mm').format(now),
+          'cozulmus': _sudokuBox.get('sudokuRows'),
+          'time': _sudokuBox.get('time'),
+          'sudokuHistory': _sudokuBox.get('sudokuHistory'),
+        };
+        completedBox.add(completedSudoku);
+        _sudokuBox.put('sudokuRows', null);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ResultView(),
+          ),
+        );
+      }
+      Fluttertoast.showToast(
+          msg: mesaj, toastLength: Toast.LENGTH_LONG, timeInSecForIosWeb: 3);
+    }
   }
 }
